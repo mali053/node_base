@@ -3,24 +3,28 @@ import axios from 'axios';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+export const processEmails = async (fileContent: string): Promise<string[]> => {
+    const emailAddresses: string[] = fileContent.split(',').map(email => email.trim());
+    const validationResults: string[] = [];
+
+    for (const email of emailAddresses) {
+        const result = await validateEmail(email);
+        validationResults.push(result);
+        await sleep(1000)
+    }
+
+    return validationResults;
+};
+
 const uploadFiles = async (req: Request, res: Response) => {
     // Check if file exists
     if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
     }
 
-    // Parse the uploaded file to extract email addresses
+    // Parse and validate emails
     const fileContent: string = req.file.buffer.toString();
-    const emailAddresses: string[] = fileContent.split(',').map(email => email.trim());
-
-    const validationResults: string[] = [];
-
-    // Validate each email address
-    for (const email of emailAddresses) {
-        const result = await validateEmail(email);
-        validationResults.push(result);
-        await sleep(1000);
-    }
+    const validationResults: string[] = await processEmails(fileContent);
 
     // Send the validation results as a response
     res.json({ validationResults });
